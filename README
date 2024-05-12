@@ -1,0 +1,513 @@
+﻿Shalev Azulay 206996621 Aviel Raclaw 318965647 
+
+**Implementation** 
+
+Our implementation is in main.pdf, we were only able to upload pdf files so I changed the extension of the file. In order to run the code, you must change the extension back to .py. 
+
+**Implementation Overview: Distributed Token Management System** 
+
+**Initial Setup and Token Management Token Objects:** Each token is characterized by: 
+
+- **ID:** A unique identifier. 
+- **Version:** Starts at 1 and increments with each transaction. 
+- **Owner ID:** Ranges from 1 to 6, corresponding to the six clients. 
+
+**Clients:** Six clients are initialized, each owning ten tokens. The servers' initial data structures reflect this token distribution, ensuring all servers start with a consistent view of token ownership. 
+
+**Client Actions** 
+
+**gettokens:** Clients can request details on all tokens owned by any client. This action is typically used to verify ownership before initiating transactions. 
+
+**pay:** Enables a client to transfer a token they own to another client. This action updates the token’s ownership and increments its version. The initiating client receives an "OK" response, confirming the transaction. 
+
+**Dynamic Server-Client Role Transformation** 
+
+**Server to Client Transformation:** Allows a server to become a client if there are more than three servers. 
+
+**Client to Server Transformation:** Permits a client to become a server if there are fewer than seven servers. This process involves synchronization to update the new server with the latest system state. 
+
+**Safety and Liveness Testing Manual Request Testing** 
+
+Enables interactive testing through manual requests such as getTokens, pay, and role transformations. This mode also allows for querying the state of the network or individual nodes. 
+
+**Liveness Tests:**  
+
+Ensures that every non-faulty client receives a response to their requests, confirming the system's ability to avoid deadlocks or indefinite hangs even under fault conditions. By not “getting stuck”, the liveness is proved. 
+
+**Safety Tests:** 
+
+**Initial Run with Faults and Delays:** Tests the system's resilience under simulated network delays and server faults, ensuring robustness against disruptions. 
+
+**Re-Run in a Fault-Free Environment:** Validates that the system maintains consistent and correct final states, independent of earlier disruptions. 
+
+**Concurrent Random Automatic Request Testing** 
+
+This testing phase introduces automated, randomized client actions (like getTokens and pay), executed at random intervals of up to two seconds. This simulates an environment with unsynchronized and unpredictable client requests. 
+
+After the automated tests, the network is shut down, and the actions are re-executed in a controlled, fault-free environment to ensure that the system's core functions are deterministic and reliable. 
+
+**Highlights** 
+
+- The use of threading to handle client requests asynchronously introduces real-world conditions into the simulation, including potential delays and the handling of simultaneous requests. 
+- Extensive use of locks and thread-safe queues ensures that even during dynamic role transformations and concurrent access scenarios, data integrity and system stability are maintained. 
+- The architecture supports seamless transitions between server and client roles without 
+
+  compromising the system’s ability to handle up to  <![](Aspose.Words.cfd445ee-b7b0-432c-809d-2b6114d386c6.001.png) omission faults, where  is the number 
+
+2
+
+of servers. 
+
+**PseudoCode** 
+
+**Initialization** 
+
+function initialize\_network(delay, num\_servers):     create network with specified delay 
+
+`    `create clients[1 to 6] 
+
+`    `create servers[1 to num\_servers] 
+
+`    `for each client and server: 
+
+`        `add to network 
+
+`    `return network, all nodes, num\_servers 
+
+**Token Class** 
+
+Class Token: 
+
+`    `Initialize Token(id, owner\_id, version = 1):         Set id as Token's id 
+
+`        `Set owner\_id as Token's owner 
+
+`        `Set version as Token's version 
+
+**Abstract NodeState Class** Abstract Class NodeState: 
+
+`    `Abstract Function transform\_role() 
+
+**Server Class** 
+
+Class ServerState Inherits NodeState:     Function Initialize(node): 
+
+`        `self.node = node 
+
+`        `self.tokens = InitializeTokens() 
+
+`    `Function InitializeTokens(): 
+
+`        `Create an array of 60 tokens 
+
+`        `For each token from 0 to 59: 
+
+`            `Assign a new token with id, and owner based on id % 6 + 1 
+
+`    `Function HandleRequest(request): 
+
+`        `If request is to pay: 
+
+`            `HandlePayRequest(request) 
+
+`        `Else if request is to get tokens: 
+
+`            `HandleGetTokensRequest() 
+
+`        `Else if request is a sync request: 
+
+`            `HandleSyncRequest() 
+
+`        `Else: 
+
+`            `Return error message "Unknown request type" 
+
+`    `Function HandlePayRequest(request): 
+
+`        `Find token by request token\_id 
+
+`        `If token exists and version matches: 
+
+`            `Update token owner and increment version 
+
+`            `Return success 
+
+`        `Else if token version is outdated: 
+
+`            `Synchronize state and retry 
+
+`            `Return error message "Syncing state" 
+
+`        `Else: 
+
+`            `Return error message "Token not found or version mismatch" 
+
+`    `Function HandleGetTokensRequest():         Return all tokens 
+
+`    `Function SynchronizeState(): 
+
+`        `Broadcast sync request to all servers 
+
+`        `Collect responses and update tokens based on the latest version received 
+
+`    `Function HandleSyncRequest(): 
+
+`        `Return all tokens with owner and version 
+
+`    `Function TransformRole(): 
+
+`        `If server count is more than three:             Convert this server to a client 
+
+**Client Class** 
+
+Class ClientState Inherits NodeState: 
+
+`    `Function Initialize(node): 
+
+`        `self.node = node 
+
+`        `self.response\_queue = New Queue()         self.response\_received = New Event() 
+
+`    `Function HandleRequest(request): 
+
+`        `If request is to pay: 
+
+`            `TransferToken(request) 
+
+`        `Else if request is to get tokens: 
+
+`            `GetTokens(request.owner\_id) 
+
+`    `Function WaitForResponses(request): 
+
+`        `Broadcast request and wait for responses 
+
+`        `Collect responses until majority is reached or timeout occurs 
+
+`    `Function TransferToken(request): 
+
+`        `Retrieve owned tokens 
+
+`        `Find the specific token to transfer 
+
+`        `If token is found: 
+
+`            `Send pay request with new owner details         Else: 
+
+`            `Display "Token not found or not owned" 
+
+`    `Function GetTokens(owner\_id): 
+
+`        `Broadcast get tokens request and collect responses         Return tokens of the specified owner 
+
+`    `Function TransformRole(): 
+
+`        `If server count is less than seven:             Convert this client to a server 
+
+**Node Class** 
+
+Class Node: 
+
+`    `Function Initialize(id, network, initial\_state):         self.id = id 
+
+`        `self.network = network 
+
+self.state = New instance of initial\_state 
+
+`    `Function HandleRequest(request): 
+
+`        `Return state.HandleRequest(request) 
+
+`    `Function TransformRole():         state.TransformRole() 
+
+**Network Class** 
+
+Class Network: 
+
+`    `Initialize: 
+
+`        `servers = empty list 
+
+`        `clients = empty list 
+
+`        `is\_open = true 
+
+`        `max\_faults = calculate maximum faults based on servers         faulty\_servers = empty list 
+
+`        `faults\_flag = true 
+
+`    `Calculate Maximum Faults: 
+
+`        `return length of servers - (half of length of servers + 1) 
+
+`    `Broadcast Request(request, sender\_id): 
+
+`        `responses = empty list 
+
+`        `majority\_count = half of servers + 1 
+
+`        `Using ThreadPool with max\_workers equals to length of servers: 
+
+`            `future\_to\_server = submit server.handle\_request(request) for each server             For each future in future\_to\_server as completed: 
+
+`                `response = get result of future 
+
+`                `if response exists: 
+
+`                    `add response to responses 
+
+`                `if length of responses >= majority\_count: 
+
+`                    `break from loop 
+
+`        `return responses 
+
+`    `Broadcast Request for Sync(request, sender):         responses = initialize queue 
+
+response\_count = new threading event 
+
+majority\_count = half of servers 
+
+Create and start a thread for each server except sender to send\_request(server, request) Wait for response\_count to be set (signaling majority reached) 
+
+Join all threads 
+
+Collect and return all responses from the queue 
+
+`    `Send Request(server, request): 
+
+`        `response = server.handle\_request(request)         if response exists: 
+
+`            `add response to queue 
+
+`            `if collected responses >= majority\_count:                 set response\_count event 
+
+`    `Add Server(node): 
+
+`        `if number of servers < 7: 
+
+`            `if node is in clients: 
+
+`                `remove node from clients 
+
+`            `add node to servers 
+
+`            `update fault tolerance settings 
+
+`    `Remove Server(node): 
+
+`        `if number of servers > 3: 
+
+`            `remove node from servers 
+
+`            `update fault tolerance settings             if node not in clients: 
+
+`                `add node to clients 
+
+`    `Add Client(node): 
+
+`        `if node not in clients:             add node to clients 
+
+`    `Update Fault Tolerance Settings: 
+
+`        `recalculate max\_faults 
+
+`        `if faults\_flag: 
+
+`            `randomly select faulty servers from servers 
+
+Close System: 
+
+is\_open = false 
+
+**SimulatedNetwork Class** 
+
+Class SimulatedNetwork extends Network:     Initialize(delay): 
+
+`        `super Initialize 
+
+`        `self.delay = delay 
+
+`    `Broadcast Request(request, sender\_id): 
+
+`        `Simulate delay 
+
+`        `return super Broadcast Request(request, sender\_id) 
+
+`    `Broadcast Request for Sync(request, sender): 
+
+`        `Simulate delay 
+
+`        `return super Broadcast Request for Sync(request, sender) 
+
+`    `Simulated Handle Request(server, request): 
+
+`        `Simulate delay 
+
+`        `if faults\_flag and server is in faulty\_servers:             Print fault occurred message 
+
+`            `return none 
+
+`        `else: 
+
+`            `return server.handle\_request(request) 
+
+`    `Simulate Delay(delay): 
+
+`        `Sleep for a random time up to delay 
+
+**Manual Testing** 
+
+Function InitializeNetwork(delay, num\_servers): 
+
+`    `If num\_servers is not specified: 
+
+`        `Prompt user for num\_servers ensuring a minimum of 3 
+
+`    `Create network with specified delay 
+
+`    `Initialize clients (6 clients) 
+
+`    `Initialize servers (as per num\_servers) 
+
+`    `Add all clients and servers to network 
+
+`    `Return network, combined list of clients and servers, num\_servers 
+
+Function ProcessCommands(nodes): 
+
+`    `Display welcome message and available commands     Loop until 'close' command is entered: 
+
+`        `Prompt user for command 
+
+`        `If command is 'close': 
+
+`            `Exit loop 
+
+`        `ElseIf command is 'help': 
+
+`            `Display commands again 
+
+`        `ElseIf command is 'status': 
+
+`            `Display current state of all nodes 
+
+`        `Else: 
+
+`            `Process and execute command 
+
+`            `Store valid commands for history 
+
+`    `Return command history 
+
+Function ExecuteCommand(command, nodes): 
+
+`    `Parse command into components (node\_id, action, parameters)     Validate node\_id and determine the target node 
+
+`    `Based on action: 
+
+`        `If 'transform': 
+
+`            `Transform node's role 
+
+`            `Return new role of the node 
+
+`        `If 'token\_status': 
+
+`            `If node is a client, return error 
+
+`            `Else, display token statuses for server 
+
+`        `If 'getTokens': 
+
+`            `If node is a server, return error 
+
+`            `Else, process get tokens request 
+
+`        `If 'pay': 
+
+`            `If node is a server, return error 
+
+`            `Else, process payment request 
+
+`        `Else: 
+
+`            `Return "Invalid command" 
+
+Function ReRunCommands(commands, num\_servers):     Reinitialize network with zero delay 
+
+`    `Disable faults in the network 
+
+`    `For each command in commands: 
+
+`        `Execute command 
+
+`        `Print result 
+
+`    `Print final statuses of all nodes 
+
+`    `Optionally, print token status of each server 
+
+Set initial delay and possibly number of servers 
+
+network, nodes, num\_servers = InitializeNetwork(delay=3) command\_history = ProcessCommands(nodes) 
+
+Close network 
+
+ReRunCommands(command\_history, num\_servers) 
+
+**Random Testing** 
+
+Function PerformRandomTests(nodes, num\_requests): 
+
+`    `Initialize results list and list of client nodes 
+
+`    `Initialize thread list and set last\_command\_time to zero 
+
+`    `For each request up to num\_requests: 
+
+`        `Select a random client and a different target client from the list 
+
+`        `Randomly choose a command type ('gettokens' or 'pay') 
+
+`        `Calculate delay for command execution to simulate random timing         Start a new thread to handle command execution: 
+
+`            `Execute command after the delay 
+
+`            `If 'pay': 
+
+`                `Retrieve owned tokens 
+
+`                `If tokens exist, send 'pay' command 
+
+`            `Else: 
+
+`                `Retrieve tokens owned by target client 
+
+`            `Record the results with command details and execution time 
+
+`    `Wait for all threads to complete 
+
+`    `Print results 
+
+`    `Return list of commands with details for re-run 
+
+Function ReRunRandomCommands(commands, num\_clients, num\_servers):     Initialize a new fault-free network with no delay 
+
+`    `Create new client and server nodes, add them to the network 
+
+`    `For each command in commands: 
+
+`        `Find the corresponding client in the new network 
+
+`        `Execute the command without delay or faults 
+
+`        `Record and print the results 
+
+`    `Print final statuses of all nodes and any additional information 
+
+Set initial delay and define network parameters 
+
+network, nodes, num\_servers = InitializeNetwork(delay=10) Prompt for number of random requests to perform 
+
+commands = PerformRandomTests(nodes, num\_requests) Close the original network ReRunRandomCommands(commands, num\_clients, num\_servers) 

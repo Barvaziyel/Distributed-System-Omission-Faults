@@ -46,6 +46,10 @@ Follow the on-screen prompts to execute operations like token transfers (`pay`),
 - **Pay:** Transfers ownership of a token to another client, updating the token's version.
 - **GetTokens:** Retrieves all tokens owned by a specific client.
 - **Transform to Client/Server:** Dynamically changes the role of servers and clients based on the system's needs.
+- **Status:** Displays the current state of all nodes within the system.
+- **Token Status:** Provides a detailed view of the tokens each server is managing.
+- **Help:** Lists available commands and their descriptions to assist users in navigating the system.
+- **Close:** Safely terminates the system session and continues the run of the test.
 
 ### Fault Tolerance
 

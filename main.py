@@ -662,7 +662,7 @@ def rerun_random_commands(commands, num_clients, num_servers):
             results.append((new_client.id, command, response))
 
     for result in results:
-        print(Fore.BLUE + f"Node {result[0]} with request {result[1]} got response {result[2]}\n" + Style.RESET_ALL)
+        print(Fore.BLUE + f"Node {result[0]} with request {result[1]} got response {result[2]}" + Style.RESET_ALL)
 
 
 network, nodes, num_servers = initialize_network(delay=10)

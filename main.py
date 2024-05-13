@@ -454,9 +454,9 @@ def initialize_network(delay, num_servers=None):
     if num_servers is None:
         while True:
             try:
-                num_servers = int(input(Fore.BLUE + "Enter the number of servers (minimum 3): "))
-                if num_servers < 3:
-                    print(Fore.RED + "Please ensure there are at least 3 servers.")
+                num_servers = int(input(Fore.BLUE + "Enter the number of servers (minimum 3, maximum 7): "))
+                if num_servers < 3 or num_servers > 7:
+                    print(Fore.RED + "Please ensure there are at least 3 servers and at most 7 servers.")
                     continue
                 print(Style.RESET_ALL)
                 break

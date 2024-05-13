@@ -509,7 +509,7 @@ def process_commands(nodes):
             for node in nodes:
                 print(f'Node {node.id}: {type(node.state).__name__}')
             continue
-        result = execute_command(command, nodes)
+        result = execute_command(command.lower(), nodes)
         if result != "Invalid command":
             command_history.append(command)
         print(result)
